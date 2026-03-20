@@ -3,28 +3,28 @@
 # ========================================
 
 
-import streamlit as st
-import joblib
+import os
 import re
 import string
+import nltk
+import joblib
 import numpy as np
-from nltk.stem import WordNetLemmatizer
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
+import streamlit as st
 from scipy.sparse import hstack, csr_matrix
 
-# For the Streamlit Cloud deployment, we need to download NLTK data at runtime
-import os
-import nltk
-
-# Download NLTK data on Streamlit Cloud
+# ── Download NLTK data first ──────────────────────────────────
 nltk.download("stopwords", quiet=True)
 nltk.download("punkt", quiet=True)
 nltk.download("punkt_tab", quiet=True)
 nltk.download("vader_lexicon", quiet=True)
 nltk.download("wordnet", quiet=True)
 nltk.download("omw-1.4", quiet=True)
+
+# ── Import NLTK modules AFTER download ───────────────────────
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 # ── Page config ───────────────────────────────────────────────
 st.set_page_config(
@@ -35,16 +35,16 @@ st.set_page_config(
 # ── Load models ───────────────────────────────────────────────
 @st.cache_resource
 def load_models():
-    import os
-
-    model_path = os.path.join(os.path.dirname(__file__), "best_model_svc.pkl")
-    vec_path = os.path.join(os.path.dirname(__file__), "tfidf_vectorizer.pkl")
-    model = joblib.load(model_path)
-    vectorizer = joblib.load(vec_path)
+    base = os.path.dirname(__file__)
+    model = joblib.load(os.path.join(base, "best_model_svc.pkl"))
+    vectorizer = joblib.load(os.path.join(base, "tfidf_vectorizer.pkl"))
     sia = SentimentIntensityAnalyzer()
     lem = WordNetLemmatizer()
     stops = set(stopwords.words("english")) - {"not", "no", "never"}
     return model, vectorizer, sia, lem, stops
+
+
+model, vectorizer, sia, lem, stops = load_models()
 
 
 # ── Preprocessing ─────────────────────────────────────────────
@@ -96,21 +96,18 @@ if st.button("Analyze", type="primary"):
     else:
         pred, proba, vader = predict(review)
 
-        # ── Result ────────────────────────────────────────────
         st.divider()
         if pred == 1:
             st.success("✅ POSITIVE Review")
         else:
             st.error("❌ NEGATIVE Review")
 
-        # ── Confidence scores ─────────────────────────────────
         col1, col2 = st.columns(2)
         with col1:
             st.metric("Positive Confidence", f"{proba[1]:.1%}")
         with col2:
             st.metric("Negative Confidence", f"{proba[0]:.1%}")
 
-        # ── VADER scores ──────────────────────────────────────
         st.divider()
         st.subheader("VADER Sentiment Scores")
         col1, col2, col3, col4 = st.columns(4)
@@ -119,7 +116,6 @@ if st.button("Analyze", type="primary"):
         col3.metric("Negative", f"{vader['neg']:.2f}")
         col4.metric("Neutral", f"{vader['neu']:.2f}")
 
-        # ── Confidence bar ────────────────────────────────────
         st.divider()
         st.subheader("Confidence Breakdown")
         st.progress(float(proba[1]))
@@ -127,7 +123,6 @@ if st.button("Analyze", type="primary"):
             f"Model confidence: {proba[1]:.1%} positive | {proba[0]:.1%} negative"
         )
 
-# ── Sample reviews ────────────────────────────────────────────
 st.divider()
 st.subheader("Try a sample review:")
 samples = [
