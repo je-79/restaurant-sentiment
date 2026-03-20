@@ -25,6 +25,9 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import LinearSVC
+from sklearn.calibration import CalibratedClassifierCV
 
 # ── Page config ───────────────────────────────────────────────
 st.set_page_config(
@@ -47,8 +50,63 @@ def load_models():
 model, vectorizer, sia, lem, stops = load_models()
 
 
-# ── Preprocessing ─────────────────────────────────────────────
-def clean(text):
+# ── Train model from CSV directly ────────────────────────────
+@st.cache_resource
+def train_and_load():
+    base = os.path.dirname(__file__)
+    df = pd.read_csv(os.path.join(base, "Restaurant_Reviews.csv"), sep=";")
+
+    lem = WordNetLemmatizer()
+    stops = set(stopwords.words("english")) - {"not", "no", "never"}
+
+    def clean(text):
+        text = str(text).lower()
+        text = re.sub(r"n't", " not", text)
+        text = re.sub(r"[%s]" % re.escape(string.punctuation), " ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        tokens = [lem.lemmatize(w) for w in word_tokenize(text) if w not in stops]
+        return " ".join(tokens)
+
+    df["cleaned"] = df["Review"].apply(clean)
+
+    vectorizer = TfidfVectorizer(
+        max_features=5000,
+        ngram_range=(1, 2),
+        min_df=2,
+        max_df=0.95,
+        sublinear_tf=True,
+        strip_accents="unicode",
+    )
+
+    X = vectorizer.fit_transform(df["cleaned"])
+    y = df["Liked"].values.astype(int)
+
+    df["exclamation_count"] = df["Review"].str.count("!")
+    df["question_count"] = df["Review"].str.count(r"\?")
+    df["caps_ratio"] = df["Review"].apply(
+        lambda x: sum(1 for c in str(x) if c.isupper()) / max(len(x), 1)
+    )
+    df["word_count"] = df["cleaned"].str.split().str.len()
+
+    extra = csr_matrix(
+        df[["exclamation_count", "question_count", "caps_ratio", "word_count"]].values
+    )
+    X_combined = hstack([X, extra])
+
+    svc = LinearSVC(C=0.8, max_iter=2000, random_state=42)
+    model = CalibratedClassifierCV(svc, cv=3)
+    model.fit(X_combined, y)
+
+    sia = SentimentIntensityAnalyzer()
+    return model, vectorizer, sia, lem, stops
+
+
+with st.spinner("Loading model..."):
+    model, vectorizer, sia, lem, stops = train_and_load()
+
+
+# ── Predict ───────────────────────────────────────────────────
+def clean_input(text, lem, stops):
     text = text.lower()
     text = re.sub(r"n't", " not", text)
     text = re.sub(r"[%s]" % re.escape(string.punctuation), " ", text)
@@ -58,7 +116,7 @@ def clean(text):
 
 
 def predict(review):
-    cleaned = clean(review)
+    cleaned = clean_input(review, lem, stops)
     X_tfidf = vectorizer.transform([cleaned])
     extra = csr_matrix(
         [
@@ -95,7 +153,6 @@ if st.button("Analyze", type="primary"):
         st.warning("Please enter a review first.")
     else:
         pred, proba, vader = predict(review)
-
         st.divider()
         if pred == 1:
             st.success("✅ POSITIVE Review")
