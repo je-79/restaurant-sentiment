@@ -14,6 +14,18 @@ from nltk.corpus import stopwords
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from scipy.sparse import hstack, csr_matrix
 
+# For the Streamlit Cloud deployment, we need to download NLTK data at runtime
+import os
+import nltk
+
+# Download NLTK data on Streamlit Cloud
+nltk.download("stopwords", quiet=True)
+nltk.download("punkt", quiet=True)
+nltk.download("punkt_tab", quiet=True)
+nltk.download("vader_lexicon", quiet=True)
+nltk.download("wordnet", quiet=True)
+nltk.download("omw-1.4", quiet=True)
+
 # ── Page config ───────────────────────────────────────────────
 st.set_page_config(
     page_title="Restaurant Sentiment Analyzer", page_icon="🍽", layout="centered"
