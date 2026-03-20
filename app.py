@@ -35,15 +35,16 @@ st.set_page_config(
 # ── Load models ───────────────────────────────────────────────
 @st.cache_resource
 def load_models():
-    model = joblib.load("best_model_svc.pkl")
-    vectorizer = joblib.load("tfidf_vectorizer.pkl")
+    import os
+
+    model_path = os.path.join(os.path.dirname(__file__), "best_model_svc.pkl")
+    vec_path = os.path.join(os.path.dirname(__file__), "tfidf_vectorizer.pkl")
+    model = joblib.load(model_path)
+    vectorizer = joblib.load(vec_path)
     sia = SentimentIntensityAnalyzer()
     lem = WordNetLemmatizer()
     stops = set(stopwords.words("english")) - {"not", "no", "never"}
     return model, vectorizer, sia, lem, stops
-
-
-model, vectorizer, sia, lem, stops = load_models()
 
 
 # ── Preprocessing ─────────────────────────────────────────────
