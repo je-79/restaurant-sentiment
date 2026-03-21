@@ -243,9 +243,9 @@ with tab2:
             "ComplementNB",
             "Random Forest",
         ],
-        "CV Accuracy": ["79.5%", "78.9%", "76.1%", "75.2%", "75.1%"],
-        "Test Accuracy": ["85.0%", "79.0%", "76.5%", "75.5%", "74.0%"],
-        "ROC-AUC": ["0.925", "0.871", "0.848", "0.830", "0.820"],
+        "CV Accuracy": ["79.5%", "78.9%", "76.1%", "75.2%", "76.1%"],
+        "Test Accuracy": ["84.0%", "84.0%", "76.5%", "78.5%", "79.0%"],
+        "ROC-AUC": ["0.925", "0.904", "0.867", "0.897", "0.872"],
         "Recommended": ["⭐ Best", "Runner-up", "—", "—", "—"],
     }
     st.dataframe(pd.DataFrame(perf_data), use_container_width=True, hide_index=True)
