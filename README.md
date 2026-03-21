@@ -43,9 +43,9 @@ restaurant-sentiment/
 ## Results
 | Model | Accuracy | ROC-AUC |
 |---|---|---|
-| LinearSVC | 85% | 0.93 |
-| Logistic Regression | 79% | 0.87 |
-| Gradient Boosting | 76% | 0.85 |
+| LinearSVC | 84% | 0.93 |
+| Logistic Regression | 84% | 0.90 |
+| Gradient Boosting | 77% | 0.87 |
 
 ## Setup
 ```bash
